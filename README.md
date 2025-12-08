@@ -15,20 +15,30 @@ The application captures microphone audio, streams it to OpenAI's Realtime API, 
 - 🎤 Real-time voice interaction with OpenAI Realtime API
 - 🔄 Automatic tool-call forwarding to MCP-Retail-Adapter
 - 📡 WebRTC-based audio streaming
-- 🎯 Clean, modern UI with event logging
+- 🎨 Modern UI built with Tailwind CSS and shadcn-style components
+- 📊 Real-time connection status indicator
+- 📝 Event logging with formatted JSON output
 - ⚡ Built with Vite for fast development and production builds
 
 ## Project Structure
 
 ```
 MCP-WebRTC-Bridge/
-├── index.html              # Main HTML file with UI
+├── index.html              # Main HTML file
 ├── src/
 │   ├── main.js            # Application entry point and UI logic
 │   ├── realtimeClient.js  # WebRTC client for OpenAI Realtime API
-│   └── mcpBridge.js       # Bridge to MCP-Retail-Adapter server
+│   ├── mcpBridge.js       # Bridge to MCP-Retail-Adapter server
+│   ├── index.css          # Tailwind CSS styles and design tokens
+│   ├── components/        # Reusable UI components
+│   │   ├── Button.js      # Button component with variants
+│   │   └── Card.js        # Card component with header/content
+│   └── lib/               # Utility functions
+│       └── utils.js       # className merging utility (cn)
 ├── public/                # Static assets
 ├── .env.example           # Environment variables template
+├── tailwind.config.js     # Tailwind CSS configuration
+├── postcss.config.js      # PostCSS configuration
 ├── vite.config.js         # Vite configuration
 └── package.json           # Project dependencies
 ```
@@ -100,12 +110,14 @@ npm run preview
 
 1. **Start the MCP-Retail-Adapter server** on `http://localhost:9000`
 2. **Open the application** in your browser (e.g., `http://localhost:5173`)
-3. **Click "Start Voice"** to begin the voice session
+3. **Click "🎤 Start Voice"** to begin the voice session
    - Your browser will request microphone permissions
    - The application will establish a WebRTC connection to OpenAI Realtime API
+   - The status indicator will show "Connected" with a green pulsing dot
 4. **Interact with the AI** through voice
-5. **Monitor events** in the log area
-6. **Click "Stop Voice"** to end the session
+5. **Monitor events** in the event log card - all events are logged with timestamps
+6. **Click "⏹ Stop Voice"** to end the session
+   - The status indicator will return to "Disconnected"
 
 ## How It Works
 
@@ -145,9 +157,16 @@ npm run preview
 - Returns tool results back to `realtimeClient.js`
 
 #### `main.js`
-- Provides basic UI (Start Voice, Stop Voice buttons)
+- Creates modern UI using shadcn-style components (Button, Card)
 - Initializes `realtimeClient.js` and registers the tool-call handler
-- Displays event logs in real-time
+- Displays real-time connection status with visual indicator
+- Shows formatted event logs with timestamps and JSON data
+- Manages UI state (button enable/disable, status updates)
+
+#### UI Components (`src/components/`)
+- **Button.js**: Reusable button component with multiple variants (default, destructive, outline, etc.)
+- **Card.js**: Card component with header, title, and content sections
+- Built with Tailwind CSS and follows shadcn/ui design patterns
 
 ## Configuration
 
@@ -216,11 +235,29 @@ The bridge expects tool calls in the following format:
 ### Code Style
 - Modern JavaScript (ES6+ modules)
 - Clean, documented, production-ready code
-- Minimal but clear structure
+- Component-based UI architecture
+- Utility-first CSS with Tailwind
 
 ### Dependencies
+
+#### Core
 - **Vite**: Build tool and dev server
-- No additional libraries (vanilla JavaScript)
+- **Vanilla JavaScript**: No framework dependencies
+
+#### Styling
+- **Tailwind CSS**: Utility-first CSS framework
+- **PostCSS**: CSS processing
+- **Autoprefixer**: Automatic vendor prefixes
+- **clsx**: Conditional className utility
+- **tailwind-merge**: Merge Tailwind classes intelligently
+
+### UI Design System
+
+The project uses a custom design system inspired by shadcn/ui:
+- **Color tokens**: Defined in CSS variables (HSL format)
+- **Component variants**: Buttons and cards support multiple style variants
+- **Dark theme**: Optimized for dark backgrounds
+- **Responsive**: Mobile-friendly layout
 
 ## License
 
@@ -239,5 +276,5 @@ For issues related to:
 
 ---
 
-Built with ❤️ using Vite and WebRTC
+Built with ❤️ using Vite, WebRTC, and Tailwind CSS
 
