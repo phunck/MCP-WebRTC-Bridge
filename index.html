@@ -4,23 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MCP WebRTC Bridge</title>
-  <style>
-    body { font-family: sans-serif; margin: 24px; background: #0f172a; color: #e2e8f0; }
-    button { margin-right: 12px; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; }
-    #start { background: #22c55e; color: #0f172a; }
-    #stop { background: #ef4444; color: #0f172a; }
-    #log { margin-top: 20px; padding: 12px; background: #1e293b; border-radius: 8px; height: 260px; overflow-y: auto; font-family: monospace; }
-    .log-line { margin: 0 0 6px 0; }
-  </style>
+  <link rel="stylesheet" href="/src/index.css" />
 </head>
-<body>
-  <h1>MCP WebRTC Bridge</h1>
-  <div>
-    <button id="start">Start Voice</button>
-    <button id="stop">Stop Voice</button>
+<body class="min-h-screen">
+  <div class="container mx-auto p-6 max-w-4xl">
+    <div id="app"></div>
+    <audio id="remoteAudio" autoplay></audio>
   </div>
-  <div id="log"></div>
-  <audio id="remoteAudio" autoplay></audio>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
