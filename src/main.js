@@ -27,15 +27,57 @@ controlHeader.appendChild(controlTitle);
 controlCard.appendChild(controlHeader);
 
 const controlContent = CardContent({ className: 'space-y-4' });
+
+// Device Selector
+const deviceContainer = document.createElement('div');
+deviceContainer.className = 'space-y-2';
+const deviceLabel = document.createElement('label');
+deviceLabel.className = 'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70';
+deviceLabel.textContent = 'Microphone';
+const deviceSelect = document.createElement('select');
+deviceSelect.className = 'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+deviceContainer.appendChild(deviceLabel);
+deviceContainer.appendChild(deviceSelect);
+
+controlContent.appendChild(deviceContainer);
+
+// Voice Selector
+const voiceContainer = document.createElement('div');
+voiceContainer.className = 'space-y-2';
+const voiceLabel = document.createElement('label');
+voiceLabel.className = 'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70';
+voiceLabel.textContent = 'Voice';
+const voiceSelect = document.createElement('select');
+voiceSelect.className = 'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+const voices = ['alloy', 'echo', 'shimmer', 'ash', 'ballad', 'coral', 'sage', 'verse'];
+voices.forEach(voice => {
+  const option = document.createElement('option');
+  option.value = voice;
+  option.text = voice.charAt(0).toUpperCase() + voice.slice(1);
+  voiceSelect.appendChild(option);
+});
+// Restore previous voice selection
+const savedVoice = localStorage.getItem('selectedVoice');
+if (savedVoice && voices.includes(savedVoice)) {
+  voiceSelect.value = savedVoice;
+}
+voiceSelect.addEventListener('change', (e) => {
+  localStorage.setItem('selectedVoice', e.target.value);
+});
+
+voiceContainer.appendChild(voiceLabel);
+voiceContainer.appendChild(voiceSelect);
+controlContent.appendChild(voiceContainer);
+
 const buttonContainer = document.createElement('div');
 buttonContainer.className = 'flex gap-3';
-const startBtn = Button({ 
+const startBtn = Button({
   id: 'start',
   variant: 'default',
   children: '🎤 Start Voice',
   className: 'flex-1'
 });
-const stopBtn = Button({ 
+const stopBtn = Button({
   id: 'stop',
   variant: 'destructive',
   children: '⏹ Stop Voice',
@@ -56,9 +98,17 @@ const statusText = document.createElement('span');
 statusText.id = 'statusText';
 statusText.className = 'text-sm text-muted-foreground';
 statusText.textContent = 'Disconnected';
-statusContainer.appendChild(statusDot);
 statusContainer.appendChild(statusText);
 controlContent.appendChild(statusContainer);
+
+// Volume indicator
+const volumeContainer = document.createElement('div');
+volumeContainer.className = 'h-2 bg-muted rounded-full overflow-hidden mt-4';
+const volumeBar = document.createElement('div');
+volumeBar.className = 'h-full bg-green-500 transition-all duration-75 ease-out';
+volumeBar.style.width = '0%';
+volumeContainer.appendChild(volumeBar);
+controlContent.appendChild(volumeContainer);
 
 controlCard.appendChild(controlContent);
 container.appendChild(controlCard);
@@ -86,13 +136,19 @@ app.appendChild(container);
 
 // Initialize bridge and client
 const bridge = new MCPBridge({
-  baseUrl: 'http://localhost:9000/tools'
+  baseUrl: '/api'
 });
+
+// Fetch available tools from MCP server (optional)
+// If your MCP server doesn't provide a tools list endpoint,
+// tools will be registered dynamically when first used
+let availableTools = [];
 
 const client = new RealtimeClient({
   onToolCall: bridge.handleToolCall,
   onEvent: log,
-  audioEl: remoteAudio
+  audioEl: remoteAudio,
+  tools: availableTools // Will be populated if MCP server provides tool definitions
 });
 
 let isActive = false;
@@ -124,13 +180,44 @@ function updateStatus(connected) {
 
 startBtn.addEventListener('click', async () => {
   if (isActive) return;
-  
+
   try {
     isActive = true;
     startBtn.disabled = true;
     stopBtn.disabled = false;
     updateStatus(false);
-    await client.start();
+
+    updateStatus(false);
+
+    // Get selected device
+    const deviceId = deviceSelect.value || null;
+    const voice = voiceSelect.value || 'alloy';
+
+    // Try to fetch tools from MCP server before starting
+    try {
+      log('Fetching tools from MCP server...');
+      const tools = await bridge.loadToolsFromMcp();
+
+      if (tools.length > 0) {
+        client.tools = tools;
+        log(`Loaded ${tools.length} tools from MCP server: ${tools.map(t => t.name).join(', ')}`);
+      } else {
+        log('No tools loaded from MCP server (empty response)');
+        client.tools = [];
+      }
+    } catch (err) {
+      log(`Failed to load tools from MCP server: ${err.message}`, { error: true });
+      log('⚠️ Session will run without MCP tools');
+      client.tools = [];
+    }
+
+    await client.start(deviceId, voice);
+
+    // Setup audio visualization
+    client.setupAudioAnalysis((volume) => {
+      volumeBar.style.width = `${volume * 100}%`;
+    });
+
     log('Voice session started');
     updateStatus(true);
   } catch (err) {
@@ -145,11 +232,46 @@ startBtn.addEventListener('click', async () => {
 
 stopBtn.addEventListener('click', () => {
   if (!isActive) return;
-  
+
   client.stop();
   log('Voice session stopped');
   isActive = false;
   startBtn.disabled = false;
   stopBtn.disabled = true;
   updateStatus(false);
+});
+
+// Initialize device list
+(async () => {
+  try {
+    const devices = await client.getAudioInputDevices();
+    deviceSelect.innerHTML = '';
+
+    if (devices.length === 0) {
+      const option = document.createElement('option');
+      option.text = 'Default Microphone';
+      option.value = '';
+      deviceSelect.appendChild(option);
+      return;
+    }
+
+    devices.forEach(device => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || `Microphone ${device.deviceId.slice(0, 5)}...`;
+      deviceSelect.appendChild(option);
+    });
+
+    // Restore previous selection if possible
+    const savedDevice = localStorage.getItem('selectedAudioDevice');
+    if (savedDevice && devices.some(d => d.deviceId === savedDevice)) {
+      deviceSelect.value = savedDevice;
+    }
+  } catch (err) {
+    console.error('Failed to load devices:', err);
+  }
+})();
+
+deviceSelect.addEventListener('change', (e) => {
+  localStorage.setItem('selectedAudioDevice', e.target.value);
 });

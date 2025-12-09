@@ -17,21 +17,6 @@ The application captures microphone audio, streams it to OpenAI's Realtime API, 
 - 📡 WebRTC-based audio streaming
 - 🎨 Modern UI built with Tailwind CSS and shadcn-style components
 - 📊 Real-time connection status indicator
-- 📝 Event logging with formatted JSON output
-- ⚡ Built with Vite for fast development and production builds
-
-## Project Structure
-
-```
-MCP-WebRTC-Bridge/
-├── index.html              # Main HTML file
-├── src/
-│   ├── main.js            # Application entry point and UI logic
-│   ├── realtimeClient.js  # WebRTC client for OpenAI Realtime API
-│   ├── mcpBridge.js       # Bridge to MCP-Retail-Adapter server
-│   ├── index.css          # Tailwind CSS styles and design tokens
-│   ├── components/        # Reusable UI components
-│   │   ├── Button.js      # Button component with variants
 │   │   └── Card.js        # Card component with header/content
 │   └── lib/               # Utility functions
 │       └── utils.js       # className merging utility (cn)
@@ -188,27 +173,34 @@ The default model is `gpt-4o-realtime-preview`. To change it, edit `src/realtime
 const MODEL = 'your-model-name';
 ```
 
+## AI Behavior & Strict Mode
+
+To ensure reliability, the bridge enforces profound system instructions that:
+- 🚫 **Forbid** general knowledge answers
+- ✅ **Mandate** tool usage for all queries
+- ⚡ **Force** immediate execution of search tools without clarifying questions
+
 ## Tool Call Format
 
 The bridge expects tool calls in the following format:
 
 **From Realtime API:**
-```json
-{
-  "type": "tool_call",
-  "name": "toolName",
-  "args": { ... },
-  "id": "call-id"
-}
-```
+The bridge listens for `response.output_item.done` events where `item.type` is `function_call`.
 
 **To MCP Server:**
-- URL: `POST http://localhost:9000/tools/toolName`
+- URL: `POST http://localhost:9000/mcp/tools`
 - Headers: `Content-Type: application/json`
-- Body: Tool arguments as JSON
+- Body:
+  ```json
+  {
+    "tool": "toolName",
+    "params": { ... },
+    "request_id": "call-id"
+  }
+  ```
 
 **Response from MCP Server:**
-- Should return JSON that will be forwarded back to the Realtime API
+- Should return a JSON object (e.g. `{ "success": true, "data": ... }`) which is forwarded back to the Realtime API as a `function_call_output` item.
 
 ## Troubleshooting
 
