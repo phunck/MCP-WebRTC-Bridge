@@ -1,4 +1,4 @@
-const MODEL = 'gpt-4o-realtime-preview';
+const MODEL = 'gpt-4o-realtime-preview-2024-12-17';
 const API_URL = `https://api.openai.com/v1/realtime?model=${MODEL}`;
 
 const STRICT_INSTRUCTIONS = `Du bist ein Retail-Store-Assistent. WICHTIG: Du hast KEIN allgemeines Wissen über Produkte, Marken oder Retail-Informationen.
